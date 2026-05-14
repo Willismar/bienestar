@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bienestar — Willismar</title>
+<meta name="application-name" content="Bienestar">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bienestar">
+<meta name="theme-color" content="#1a2e20">
+<meta name="description" content="Plan de Bienestar — Willismar">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a2e20'/><text y='.9em' font-size='70' x='15'>🌿</text></svg>">
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #2d6a4f;
+    --green-light: #52b788;
+    --green-pale: #d8f3dc;
+    --gold: #b5830a;
+    --gold-light: #f4d03f;
+    --red: #c0392b;
+    --red-light: #fadbd8;
+    --cream: #fdf8f0;
+    --dark: #1a2e20;
+    --gray: #5a6e61;
+    --border: #c8e6c9;
+    --white: #ffffff;
+    --shadow: 0 4px 20px rgba(45,106,79,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--dark); min-height: 100vh; }
+
+  /* ── HEADER ── */
+  .app-header {
+    background: linear-gradient(135deg, var(--dark) 0%, var(--green) 100%);
+    color: white; padding: 22px 36px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+  }
+  .app-header h1 { font-family: 'Playfair Display', serif; font-size: 1.7rem; font-weight: 700; }
+  .app-header h1 span { color: var(--green-light); }
+  .app-header p { font-size: 0.8rem; opacity: 0.7; margin-top: 2px; }
+  .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 0.83rem; font-weight: 500; transition: all 0.2s;
+  }
+  .btn-outline { background: transparent; border: 1.5px solid rgba(255,255,255,0.4); color: white; }
+  .btn-outline:hover { background: rgba(255,255,255,0.1); }
+  .btn-primary { background: var(--green-light); color: var(--dark); font-weight: 600; }
+  .btn-primary:hover { background: #74c69d; }
+  .btn-gold { background: var(--gold-light); color: var(--dark); font-weight: 600; }
+  .btn-save { background: #3b82f6; color: white; font-weight: 600; }
+  .btn-save:hover { background: #2563eb; }
+  .btn-restore { background: #8b5cf6; color: white; font-weight: 600; }
+  .btn-restore:hover { background: #7c3aed; }
+  .btn-danger { background: var(--red); color: white; }
+  .btn-danger:hover { background: #a93226; }
+  .btn-sm { padding: 5px 11px; font-size: 0.76rem; }
+
+  /* ── TABS ── */
+  .tabs { background: white; border-bottom: 2px solid var(--border); display: flex; padding: 0 36px; }
+  .tab { padding: 13px 20px; cursor: pointer; font-size: 0.86rem; font-weight: 500; color: var(--gray); border-bottom: 3px solid transparent; transition: all 0.2s; margin-bottom: -2px; }
+  .tab:hover { color: var(--green); }
+  .tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 600; }
+
+  /* ── MAIN ── */
+  .main { padding: 26px 36px; max-width: 1300px; margin: 0 auto; }
+
+  /* ── ALERT ── */
+  .alert-banner { background: linear-gradient(90deg,#fef9c3,#fef3c7); border: 1.5px solid #f59e0b; border-radius: 10px; padding: 12px 18px; margin-bottom: 22px; display: flex; align-items: center; gap: 12px; }
+  .alert-banner strong { color: #92400e; font-size: 0.88rem; }
+  .alert-banner ul { list-style: none; display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+  .alert-banner ul li { background: #fde68a; color: #78350f; border-radius: 20px; padding: 2px 9px; font-size: 0.76rem; font-weight: 500; }
+
+  /* ── PLAN TITLE CARD ── */
+  .plan-title-card { background: white; border-radius: 14px; padding: 20px 26px; margin-bottom: 22px; box-shadow: var(--shadow); display: flex; align-items: center; justify-content: space-between; border-left: 5px solid var(--green); }
+  .plan-title-card h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; }
+  .plan-title-card p { color: var(--gray); font-size: 0.82rem; margin-top: 3px; }
+
+  /* ── DAYS GRID ── */
+  .days-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+  .day-card { background: white; border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; }
+  .day-card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(45,106,79,0.18); }
+  .day-header { background: linear-gradient(135deg, var(--green), var(--green-light)); padding: 12px 16px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .day-header h3 { font-size: 1rem; font-weight: 700; color: white; letter-spacing: 1px; }
+  .day-header .schedule-info { font-size: 0.7rem; color: rgba(255,255,255,0.85); margin-top: 3px; }
+  .day-actions { display: flex; gap: 5px; flex-shrink: 0; }
+  .day-body { padding: 14px 16px; }
+
+  /* ── SCHEDULE PILLS in green header ── */
+  .schedule-pills { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+  .s-pill {
+    background: rgba(255,255,255,0.18); color: white;
+    border-radius: 20px; padding: 2px 9px; font-size: 0.68rem; font-weight: 600;
+    cursor: pointer; transition: background 0.2s;
+    border: 1.5px solid rgba(255,255,255,0.3);
+  }
+  .s-pill:hover { background: rgba(255,255,255,0.3); }
+
+  /* ── MEAL SECTIONS ── */
+  .section-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: var(--green); margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+  .meal-title { font-weight: 600; font-size: 0.88rem; margin-bottom: 4px; }
+  .meal-desc { font-size: 0.79rem; color: var(--gray); line-height: 1.5; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+
+  /* ── EXERCISE LIST ── */
+  .exercise-list { list-style: none; }
+  .exercise-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #f0f7f1; font-size: 0.81rem; }
+  .exercise-item:last-child { border-bottom: none; }
+  .exercise-name { color: var(--dark); }
+  .exercise-reps { background: var(--green-pale); color: var(--green); border-radius: 20px; padding: 2px 9px; font-size: 0.73rem; font-weight: 600; }
+  .exercise-timer-btn {
+    background: var(--gold-light); color: var(--dark); border: none; border-radius: 20px;
+    padding: 2px 9px; font-size: 0.71rem; font-weight: 600; cursor: pointer;
+    margin-left: 4px; transition: background 0.2s;
+  }
+  .exercise-timer-btn:hover { background: #f0c030; }
+  .rest-badge { background: #fef9c3; color: #92400e; border-radius: 8px; padding: 8px 12px; font-size: 0.82rem; text-align: center; margin-top: 6px; }
+
+  /* ── PRODUCTS IN DAY CARD ── */
+  .day-products-section { margin-top: 10px; }
+  .day-product-item {
+    display: flex; align-items: center; gap: 8px; padding: 4px 0;
+    border-bottom: 1px solid #f0f7f1; font-size: 0.8rem;
+  }
+  .day-product-item:last-child { border-bottom: none; }
+  .day-product-check {
+    width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border);
+    cursor: pointer; flex-shrink: 0; appearance: none; -webkit-appearance: none;
+    background: white; transition: all 0.2s; position: relative;
+  }
+  .day-product-check:checked { background: var(--green); border-color: var(--green); }
+  .day-product-check:checked::after { content: '✓'; position: absolute; top: -1px; left: 2px; color: white; font-size: 11px; font-weight: 700; }
+  .day-product-label { flex: 1; color: var(--dark); }
+  .day-product-label.checked { text-decoration: line-through; color: var(--gray); }
+
+  /* ── STOCK TAB ── */
+  .stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 14px; }
+  .stock-card { background: white; border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px; transition: transform 0.2s; }
+  .stock-card:hover { transform: translateY(-2px); }
+  .stock-icon { font-size: 1.7rem; width: 40px; text-align: center; flex-shrink: 0; }
+  .stock-info { flex: 1; }
+  .stock-name { font-weight: 600; font-size: 0.88rem; }
+  .stock-status { font-size: 0.73rem; margin-top: 2px; font-weight: 500; }
+  .status-ok { color: var(--green); }
+  .status-missing { color: var(--red); }
+  .stock-toggle { width: 38px; height: 20px; border-radius: 10px; border: none; cursor: pointer; position: relative; transition: background 0.3s; flex-shrink: 0; }
+  .stock-toggle::after { content: ''; position: absolute; width: 14px; height: 14px; background: white; border-radius: 50%; top: 3px; left: 3px; transition: left 0.3s; }
+  .stock-toggle.on { background: var(--green-light); }
+  .stock-toggle.on::after { left: 21px; }
+  .stock-toggle.off { background: #ccc; }
+
+  /* ── MODAL ── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal { background: white; border-radius: 16px; padding: 26px 30px; width: 100%; max-width: 580px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-family: 'Playfair Display', serif; font-size: 1.25rem; margin-bottom: 18px; color: var(--dark); }
+  .form-group { margin-bottom: 13px; }
+  .form-group label { font-size: 0.8rem; font-weight: 600; color: var(--gray); display: block; margin-bottom: 4px; }
+  .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px 11px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.86rem; color: var(--dark); background: var(--cream); outline: none; transition: border 0.2s; }
+  .form-group input:focus, .form-group textarea:focus { border-color: var(--green-light); background: white; }
+  .form-group textarea { resize: vertical; min-height: 72px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; flex-wrap: wrap; }
+  .exercise-editor { border: 1.5px solid var(--border); border-radius: 8px; padding: 10px; background: #f9fdf9; }
+  .ex-row { display: flex; gap: 7px; align-items: center; margin-bottom: 7px; }
+  .ex-row input { flex: 1; }
+  .schedule-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ── TIMER MODAL ── */
+  .timer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+  .timer-box {
+    background: white; border-radius: 24px; padding: 48px 56px; text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.35); min-width: 320px;
+    animation: timerIn 0.3s ease;
+  }
+  @keyframes timerIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .timer-exercise-name { font-size: 0.9rem; color: var(--gray); font-weight: 500; margin-bottom: 8px; }
+  .timer-series { font-size: 0.8rem; color: var(--green); font-weight: 600; margin-bottom: 16px; background: var(--green-pale); border-radius: 20px; padding: 3px 12px; display: inline-block; }
+  .timer-display {
+    font-family: 'Playfair Display', serif; font-size: 5rem; font-weight: 900;
+    color: var(--dark); line-height: 1; margin: 10px 0 20px;
+    transition: color 0.3s;
+  }
+  .timer-display.urgent { color: var(--red); animation: pulse 0.5s infinite alternate; }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+  .timer-bar-bg { background: var(--green-pale); border-radius: 99px; height: 8px; margin-bottom: 24px; overflow: hidden; }
+  .timer-bar { background: linear-gradient(90deg, var(--green), var(--green-light)); height: 100%; border-radius: 99px; transition: width 1s linear; }
+  .timer-controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .timer-btn { padding: 10px 22px; border-radius: 10px; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 600; transition: all 0.2s; }
+  .timer-btn-pause { background: var(--green-pale); color: var(--green); }
+  .timer-btn-stop { background: var(--red-light); color: var(--red); }
+  .timer-btn-next { background: var(--gold-light); color: var(--dark); }
+
+  /* ── DONE OVERLAY ── */
+  .done-overlay {
+    position: fixed; inset: 0; background: rgba(45,106,79,0.92); z-index: 3000;
+    display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+    animation: fadeIn 0.4s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .done-icon { font-size: 5rem; animation: bounceIn 0.5s ease; }
+  @keyframes bounceIn { 0% { transform: scale(0); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  .done-text { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: white; font-weight: 900; }
+  .done-sub { font-size: 1rem; color: rgba(255,255,255,0.8); }
+  .done-close { padding: 12px 30px; background: white; color: var(--green); border: none; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 8px; }
+
+  /* ── CONFIG ── */
+  .config-card { background: white; border-radius: 14px; padding: 22px; box-shadow: var(--shadow); margin-bottom: 18px; }
+  .config-card h3 { font-family: 'Playfair Display', serif; font-size: 1.05rem; margin-bottom: 14px; color: var(--dark); }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.73rem; font-weight: 600; }
+  .badge-green { background: var(--green-pale); color: var(--green); }
+  .badge-gold { background: #fef3c7; color: var(--gold); }
+
+  /* ── SAVE/RESTORE INFO ── */
+  .save-info { background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; font-size: 0.82rem; color: #1d4ed8; margin-bottom: 16px; }
+
+  /* ── HIDDEN / TABS ── */
+  .hidden { display: none !important; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── PRINT ── */
+  @media print {
+    .tabs, .header-actions, .day-actions, #tab-stock, #tab-config, .btn, .alert-banner, .timer-overlay, .done-overlay { display: none !important; }
+    .app-header { background: var(--dark) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .day-header { background: var(--green) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .days-grid { grid-template-columns: repeat(2,1fr); }
+    .main { padding: 10px; }
+    body { background: white; }
+  }
+  @media(max-width:768px){
+    .app-header{padding:14px 16px;}
+    .app-header h1{font-size:1.1rem;}
+    .header-actions{gap:4px;flex-wrap:wrap;}
+    .btn{padding:6px 10px;font-size:.72rem;}
+    .tabs{padding:0 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    .tab{padding:10px 12px;font-size:.75rem;white-space:nowrap;}
+    .main{padding:14px 12px;}
+    .days-grid{grid-template-columns:1fr;}
+    .plan-title-card{flex-direction:column;gap:8px;align-items:flex-start;}
+    .stock-grid{grid-template-columns:repeat(2,1fr);}
+  }
+  #sync-bienestar{
+    position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+    background:#1a2e20;color:rgba(255,255,255,.8);font-size:.7rem;font-weight:700;
+    padding:4px 14px;border-radius:20px;z-index:999;
+    border:1px solid rgba(255,255,255,.15);pointer-events:none;
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div>
+    <h1>🌿 <span id="display-name">Willismar</span> — Plan de Bienestar</h1>
+    <p id="display-subtitle">Plan Nutricional & Entrenamiento Personalizado</p>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-save" onclick="saveToFile()">💾 Guardar</button>
+    <button class="btn btn-restore" onclick="document.getElementById('restore-input').click()">📂 Restaurar</button>
+    <input type="file" id="restore-input" accept=".json" style="display:none" onchange="restoreFromFile(event)">
+    <button class="btn btn-outline" onclick="printPlan()">🖨️ Imprimir</button>
+    <button class="btn btn-primary" onclick="openAddDay()">+ Agregar Día</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="tab active" onclick="switchTab('plan')">📋 Mi Plan</div>
+  <div class="tab" onclick="switchTab('stock')">🛒 Stock</div>
+  <div class="tab" onclick="switchTab('config')">⚙️ Configuración</div>
+</nav>
+
+<div class="main">
+
+  <div class="alert-banner" id="alert-banner">
+    <span style="font-size:1.2rem">⚠️</span>
+    <div>
+      <strong>Productos que necesitas comprar:</strong>
+      <ul id="missing-list"></ul>
+    </div>
+  </div>
+
+  <!-- TAB PLAN -->
+  <div class="tab-content active" id="tab-plan">
+    <div class="plan-title-card">
+      <div>
+        <h2 id="plan-card-title">Plan de Bienestar</h2>
+        <p id="plan-card-desc">Semana actual · 3 series por ejercicio</p>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <span class="badge badge-green">5 días activos</span>
+        <span class="badge badge-gold">Viernes: descanso</span>
+      </div>
+    </div>
+    <div class="days-grid" id="days-grid"></div>
+  </div>
+
+  <!-- TAB STOCK -->
+  <div class="tab-content" id="tab-stock">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <div>
+        <h2 style="font-family:'Playfair Display',serif;font-size:1.25rem;">Stock de Productos</h2>
+        <p style="color:var(--gray);font-size:0.82rem;margin-top:3px;">Marca lo que tienes en casa. Te avisamos qué te falta.</p>
+      </div>
+      <button class="btn btn-primary" onclick="openAddProduct()">+ Agregar Producto</button>
+    </div>
+    <div class="stock-grid" id="stock-grid"></div>
+  </div>
+
+  <!-- TAB CONFIG -->
+  <div class="tab-content" id="tab-config">
+    <div class="save-info">💡 <strong>Guardar / Restaurar:</strong> Usa los botones del encabezado para guardar tu progreso como archivo .json y cargarlo en otra computadora.</div>
+    <div class="config-card">
+      <h3>✏️ Personalizar Plan</h3>
+      <div class="info-grid">
+        <div class="form-group"><label>Nombre</label><input type="text" id="cfg-name" value="Willismar"></div>
+        <div class="form-group"><label>Subtítulo</label><input type="text" id="cfg-subtitle" value="Plan Nutricional & Entrenamiento Personalizado"></div>
+        <div class="form-group"><label>Título del plan</label><input type="text" id="cfg-plan-title" value="Plan de Bienestar"></div>
+        <div class="form-group"><label>Descripción</label><input type="text" id="cfg-plan-desc" value="Semana actual · 3 series por ejercicio"></div>
+      </div>
+      <button class="btn btn-primary" onclick="saveConfig()">💾 Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR DÍA -->
+<div class="modal-overlay hidden" id="modal-day">
+  <div class="modal">
+    <h3 id="modal-title">Editar Día</h3>
+    <input type="hidden" id="edit-day-id">
+    <div class="form-group"><label>Nombre del día</label><input type="text" id="edit-day-name" placeholder="Ej: LUNES"></div>
+
+    <div class="form-group">
+      <label>🕐 Horarios</label>
+      <div class="schedule-edit-grid">
+        <div>
+          <label style="font-size:0.74rem;color:var(--gray);">🌅 Desayuno</label>
+          <input type="text" id="edit-sched-breakfast" placeholder="07:00 - 08:00">
+        </div>
+        <div>
+          <label style="font-size:0.74rem;color:var(--gray);">☀️ Almuerzo</label>
+          <input type="text" id="edit-sched-lunch" placeholder="12:45 - 13:45">
+        </div>
+        <div>
+          <label style="font-size:0.74rem;color:var(--gray);">🌙 Merienda</label>
+          <input type="text" id="edit-sched-snack" placeholder="18:00 - 19:00">
+        </div>
+        <div>
+          <label style="font-size:0.74rem;color:var(--gray);">🏋️ Entrenamiento</label>
+          <input type="text" id="edit-sched-workout" placeholder="19:00 - 20:00">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group"><label>Título del desayuno</label><input type="text" id="edit-meal-title" placeholder="Ej: Omelette de Claras"></div>
+    <div class="form-group"><label>Descripción del desayuno</label><textarea id="edit-meal-desc"></textarea></div>
+    <div class="form-group"><label>Bebida</label><input type="text" id="edit-meal-drink" placeholder="Ej: Café sin azúcar + canela"></div>
+
+    <div class="form-group">
+      <label>🛒 Productos del día</label>
+      <div id="day-products-editor" style="border:1.5px solid var(--border);border-radius:8px;padding:10px;background:#f9fdf9;">
+        <div id="day-prod-list"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <input type="text" id="new-day-prod-icon" placeholder="🥚" style="width:60px;flex:0;">
+          <input type="text" id="new-day-prod-name" placeholder="Nombre del producto" style="flex:1;">
+          <button class="btn btn-sm btn-primary" onclick="addDayProduct()">+ Añadir</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>🏋️ Ejercicios</label>
+      <div class="exercise-editor">
+        <div id="exercises-editor"></div>
+        <button class="btn btn-sm" onclick="addExerciseRow()" style="margin-top:6px;color:var(--dark);border:1.5px solid var(--border);background:transparent;">+ Ejercicio</button>
+      </div>
+    </div>
+
+    <div class="form-group"><label>¿Día de descanso?</label>
+      <select id="edit-rest">
+        <option value="no">No — día activo</option>
+        <option value="yes">Sí — día de descanso</option>
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-day')" style="color:var(--dark);">Cancelar</button>
+      <button class="btn btn-danger btn-sm" id="btn-delete-day" onclick="deleteDay()">🗑 Eliminar</button>
+      <button class="btn btn-primary" onclick="saveDay()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRODUCTO GLOBAL -->
+<div class="modal-overlay hidden" id="modal-product">
+  <div class="modal">
+    <h3 id="modal-product-title">Agregar Producto</h3>
+    <input type="hidden" id="edit-product-id">
+    <div class="form-group"><label>Nombre</label><input type="text" id="edit-product-name"></div>
+    <div class="form-group"><label>Emoji / Icono</label><input type="text" id="edit-product-icon" placeholder="🥚"></div>
+    <div class="form-group"><label>Tengo este producto</label>
+      <select id="edit-product-have">
+        <option value="yes">✅ Sí, lo tengo</option>
+        <option value="no">❌ No lo tengo</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-product')" style="color:var(--dark);">Cancelar</button>
+      <button class="btn btn-danger btn-sm" id="btn-delete-product" onclick="deleteProduct()">🗑 Eliminar</button>
+      <button class="btn btn-primary" onclick="saveProduct()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR HORARIO RÁPIDO -->
+<div class="modal-overlay hidden" id="modal-schedule">
+  <div class="modal" style="max-width:400px;">
+    <h3 id="modal-sched-title">Editar Horarios</h3>
+    <input type="hidden" id="sched-day-id">
+    <div class="form-group"><label>🌅 Desayuno</label><input type="text" id="sched-breakfast" placeholder="07:00 - 08:00"></div>
+    <div class="form-group"><label>☀️ Almuerzo</label><input type="text" id="sched-lunch" placeholder="12:45 - 13:45"></div>
+    <div class="form-group"><label>🌙 Merienda</label><input type="text" id="sched-snack" placeholder="18:00 - 19:00"></div>
+    <div class="form-group"><label>🏋️ Entrenamiento</label><input type="text" id="sched-workout" placeholder="19:00 - 20:00"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-schedule')" style="color:var(--dark);">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveSchedule()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TIMER MODAL -->
+<div class="timer-overlay hidden" id="timer-overlay">
+  <div class="timer-box">
+    <div class="timer-exercise-name" id="timer-ex-name">Ejercicio</div>
+    <div class="timer-series" id="timer-series-label">Serie 1 de 3</div>
+    <div class="timer-display" id="timer-display">0:30</div>
+    <div class="timer-bar-bg"><div class="timer-bar" id="timer-bar" style="width:100%"></div></div>
+    <div class="timer-controls">
+      <button class="timer-btn timer-btn-pause" id="timer-pause-btn" onclick="toggleTimerPause()">⏸ Pausar</button>
+      <button class="timer-btn timer-btn-next" onclick="timerNextSeries()">▶ Siguiente serie</button>
+      <button class="timer-btn timer-btn-stop" onclick="stopTimer()">✕ Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- DONE OVERLAY -->
+<div class="done-overlay hidden" id="done-overlay">
+  <div class="done-icon">🏆</div>
+  <div class="done-text">¡Tiempo cumplido!</div>
+  <div class="done-sub" id="done-sub-text">Completaste todas las series</div>
+  <button class="done-close" onclick="closeDone()">✓ Continuar</button>
+</div>
+
+<script>
+// ── FIREBASE ──────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyAUvMWFnuaNXmyh7rjvLPNgjtiS0qQWYGM",
+  authDomain: "tecnico-pro.firebaseapp.com",
+  projectId: "tecnico-pro",
+  storageBucket: "tecnico-pro.firebasestorage.app",
+  messagingSenderId: "883534120062",
+  appId: "1:883534120062:web:72b5343763fd1d3582442f"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function fbSave(){
+  db.collection('willismar-bienestar').doc('willismar').set({
+    config, days, products, nextDayId, nextProductId, dpIdCounter,
+    updated: new Date().toISOString()
+  }).then(()=>syncMsg('☁️ Guardado en la nube'))
+    .catch(e=>console.warn('FB:',e));
+}
+
+function fbLoad(){
+  syncMsg('⏳ Sincronizando...');
+  db.collection('willismar-bienestar').doc('willismar').get().then(snap=>{
+    if(snap.exists){
+      const d=snap.data();
+      if(d.config) config=d.config;
+      if(d.days) days=d.days;
+      if(d.products) products=d.products;
+      if(d.nextDayId) nextDayId=d.nextDayId;
+      if(d.nextProductId) nextProductId=d.nextProductId;
+      if(d.dpIdCounter) dpIdCounter=d.dpIdCounter;
+      // sync to localStorage
+      localStorage.setItem('bien_config',JSON.stringify(config));
+      localStorage.setItem('bien_days',JSON.stringify(days));
+      localStorage.setItem('bien_products',JSON.stringify(products));
+      localSave(); renderAll();
+      syncMsg('☁️ Sincronizado');
+    } else { syncMsg('☁️ Nube lista'); }
+  }).catch(()=>syncMsg('⚠️ Sin conexión'));
+}
+
+function syncMsg(msg){
+  let el=document.getElementById('sync-bienestar');
+  if(!el){el=document.createElement('div');el.id='sync-bienestar';document.body.appendChild(el);}
+  el.textContent=msg;
+}
+
+function localSave(){
+  localStorage.setItem('bien_config',JSON.stringify(config));
+  localStorage.setItem('bien_days',JSON.stringify(days));
+  localStorage.setItem('bien_products',JSON.stringify(products));
+  fbSave();
+}
+
+function localLoad(){
+  try{ const c=localStorage.getItem('bien_config'); if(c) config=JSON.parse(c); }catch{}
+  try{ const d=localStorage.getItem('bien_days'); if(d) days=JSON.parse(d); }catch{}
+  try{ const p=localStorage.getItem('bien_products'); if(p) products=JSON.parse(p); }catch{}
+}
+
+// ── DATA ──────────────────────────────────────────────────
+let config = {
+  name: 'Willismar',
+  subtitle: 'Plan Nutricional & Entrenamiento Personalizado',
+  planTitle: 'Plan de Bienestar',
+  planDesc: 'Semana actual · 3 series por ejercicio'
+};
+
+let days = [
+  {
+    id: 1, name: 'LUNES', rest: false,
+    schedBreakfast: '07:00 - 08:00',
+    schedLunch: '12:45 - 13:45',
+    schedSnack: '18:00 - 18:30',
+    schedWorkout: '18:30 - 19:15',
+    mealTitle: 'Omelette de Claras con Espinacas, Champiñones y Tomate',
+    mealDesc: 'Bate 2 claras de huevo con sal y pimienta y 2 huevos enteros.\nCocina las claras en una sartén, añadiendo espinacas y tomate antes de doblar el omelette.\n2 rebanadas de pan integral y ½ aguacate.',
+    mealDrink: 'Café sin azúcar + canela',
+    dayProducts: [
+      {id:'dp1', icon:'🥚', name:'Claras de huevo', done: false},
+      {id:'dp2', icon:'🥬', name:'Espinacas frescas', done: false},
+      {id:'dp3', icon:'🍅', name:'Tomate', done: false},
+      {id:'dp4', icon:'🍞', name:'Pan integral', done: false},
+      {id:'dp5', icon:'🥑', name:'Aguacate', done: false}
+    ],
+    exercises: [
+      {name:'Elevación de piernas', reps:'10'},
+      {name:'Abdominales con salto', reps:'1 min'},
+      {name:'Marcha elevando rodilla', reps:'1 min'},
+      {name:'Bíceps de brazos', reps:'10'},
+      {name:'Plancha frontal', reps:'30 seg'}
+    ]
+  },
+  {
+    id: 2, name: 'MARTES', rest: false,
+    schedBreakfast: '07:00 - 08:00',
+    schedLunch: '12:45 - 13:45',
+    schedSnack: '18:00 - 18:30',
+    schedWorkout: '18:30 - 19:15',
+    mealTitle: 'Avena con Proteína y Nueces',
+    mealDesc: 'Hierve ¾ taza de avena en 1 taza de leche descremada (o de almendras).\nCuando esté lista, añade 1.5 scoop de proteína en polvo.\nAgrega 15 nueces + 1 cdta. semillas de chía y decora con ½ taza de fresas + arándanos y una pizca de canela.',
+    mealDrink: '',
+    dayProducts: [
+      {id:'dp6', icon:'🌾', name:'Avena', done: false},
+      {id:'dp7', icon:'🥛', name:'Leche descremada', done: false},
+      {id:'dp8', icon:'💪', name:'Proteína en polvo', done: false},
+      {id:'dp9', icon:'🌰', name:'Nueces', done: false},
+      {id:'dp10', icon:'🍓', name:'Fresas', done: false}
+    ],
+    exercises: [
+      {name:'Sentadillas', reps:'15'},
+      {name:'Lagartijas', reps:'10'},
+      {name:'Abdominales', reps:'20'},
+      {name:'Fondos de tríceps', reps:'12'},
+      {name:'Cerramiento de brazos', reps:'20'}
+    ]
+  },
+  {
+    id: 3, name: 'MIÉRCOLES', rest: false,
+    schedBreakfast: '07:00 - 08:00',
+    schedLunch: '12:45 - 13:45',
+    schedSnack: '18:00 - 18:30',
+    schedWorkout: '18:30 - 19:15',
+    mealTitle: 'Batido de Proteínas con Espinacas',
+    mealDesc: 'Mezcla en la licuadora: 1.5 taza de leche descremada, 1.5 scoop de proteína en polvo, 2 puñados de espinacas frescas, 1 manzana verde, ½ taza de avena, ½ plátano congelado y 1 cdta. aceite MCT o coco.',
+    mealDrink: '',
+    dayProducts: [
+      {id:'dp11', icon:'🥛', name:'Leche descremada', done: false},
+      {id:'dp12', icon:'💪', name:'Proteína en polvo', done: false},
+      {id:'dp13', icon:'🥬', name:'Espinacas frescas', done: false},
+      {id:'dp14', icon:'🍏', name:'Manzana verde', done: false},
+      {id:'dp15', icon:'🍌', name:'Plátano congelado', done: false}
+    ],
+    exercises: [
+      {name:'Zancadas', reps:'12'},
+      {name:'Patada de tríceps', reps:'15'},
+      {name:'Plancha lateral (alzando pierna)', reps:'30 seg'},
+      {name:'Abdominales', reps:'20'},
+      {name:'Lagartijas', reps:'1 min'}
+    ]
+  },
+  {
+    id: 4, name: 'JUEVES', rest: false,
+    schedBreakfast: '07:00 - 08:00',
+    schedLunch: '12:45 - 13:45',
+    schedSnack: '18:00 - 18:30',
+    schedWorkout: '18:30 - 19:15',
+    mealTitle: 'Yogurt con Granola y Frutas',
+    mealDesc: 'Mezcla 1.5 taza de yogurt griego con ½ taza de granola casera.\nDecora con ½ taza de fresas + ¼ taza arándanos, 12 nueces + 8 almendras, 1 cdta. miel cruda y 1 cdta. semillas de linaza.',
+    mealDrink: '',
+    dayProducts: [
+      {id:'dp16', icon:'🍶', name:'Yogurt griego', done: false},
+      {id:'dp17', icon:'🥣', name:'Granola', done: false},
+      {id:'dp18', icon:'🍓', name:'Fresas', done: false},
+      {id:'dp19', icon:'🫐', name:'Arándanos', done: false},
+      {id:'dp20', icon:'🍯', name:'Miel cruda', done: false}
+    ],
+    exercises: [
+      {name:'Sentadilla búlgara (cada pierna)', reps:'12'},
+      {name:'Puente de glúteos', reps:'15'},
+      {name:'Mountain climbers', reps:'10'},
+      {name:'Plancha frontal', reps:'30 seg'},
+      {name:'Bíceps de brazos', reps:'10'}
+    ]
+  },
+  {
+    id: 5, name: 'VIERNES', rest: true,
+    schedBreakfast: '07:00 - 08:00',
+    schedLunch: '11:45 - 12:45',
+    schedSnack: '18:00 - 18:30',
+    schedWorkout: '',
+    mealTitle: 'Smoothie Bowl de Proteínas y Frutas',
+    mealDesc: 'Mezcla en la licuadora 1 taza de leche descremada, 1.5 scoop de proteína en polvo, 1 plátano congelado, 1 cda. de mantequilla de maní y ½ taza de frutos rojos.\nVierte en un tazón y decora con 1/3 taza de granola casera, 1 cdta. coco rallado, 8 almendras y ½ cdta. semillas chía.',
+    mealDrink: '',
+    dayProducts: [
+      {id:'dp21', icon:'🥛', name:'Leche descremada', done: false},
+      {id:'dp22', icon:'💪', name:'Proteína en polvo', done: false},
+      {id:'dp23', icon:'🍌', name:'Plátano congelado', done: false},
+      {id:'dp24', icon:'🥜', name:'Mantequilla de maní', done: false},
+      {id:'dp25', icon:'🥥', name:'Coco rallado', done: false}
+    ],
+    exercises: []
+  }
+];
+
+let products = [
+  {id:1, name:'Claras de huevo', icon:'🥚', have:true},
+  {id:2, name:'Espinacas frescas', icon:'🥬', have:true},
+  {id:3, name:'Tomate', icon:'🍅', have:true},
+  {id:4, name:'Pan integral', icon:'🍞', have:false},
+  {id:5, name:'Aguacate', icon:'🥑', have:false},
+  {id:6, name:'Avena', icon:'🌾', have:true},
+  {id:7, name:'Leche descremada / almendra', icon:'🥛', have:true},
+  {id:8, name:'Proteína en polvo', icon:'💪', have:false},
+  {id:9, name:'Nueces', icon:'🌰', have:true},
+  {id:10, name:'Semillas de chía', icon:'🌱', have:true},
+  {id:11, name:'Fresas', icon:'🍓', have:false},
+  {id:12, name:'Arándanos', icon:'🫐', have:false},
+  {id:13, name:'Yogurt griego', icon:'🍶', have:true},
+  {id:14, name:'Granola', icon:'🥣', have:false},
+  {id:15, name:'Miel cruda', icon:'🍯', have:true},
+  {id:16, name:'Semillas de linaza', icon:'🌿', have:true},
+  {id:17, name:'Plátano congelado', icon:'🍌', have:true},
+  {id:18, name:'Mantequilla de maní', icon:'🥜', have:false},
+  {id:19, name:'Aceite MCT / coco', icon:'🫙', have:false},
+  {id:20, name:'Manzana verde', icon:'🍏', have:true},
+  {id:21, name:'Almendras', icon:'🌰', have:true},
+  {id:22, name:'Coco rallado', icon:'🥥', have:false},
+  {id:23, name:'Café', icon:'☕', have:true},
+  {id:24, name:'Canela', icon:'🍂', have:true}
+];
+
+let nextDayId = 6;
+let nextProductId = 25;
+let dpIdCounter = 100;
+
+// ── TIMER STATE ────────────────────────────────────────────
+let timerInterval = null;
+let timerSeconds = 0;
+let timerTotalSeconds = 0;
+let timerPaused = false;
+let timerCurrentSeries = 1;
+let timerTotalSeries = 3;
+let timerExerciseName = '';
+
+// ── RENDER ALL ─────────────────────────────────────────────
+function renderAll() {
+  renderDays();
+  renderStock();
+  renderAlert();
+  updateConfigDisplay();
+}
+
+// ── PARSE TIME STRING → seconds ────────────────────────────
+function parseRepsToSeconds(repsStr) {
+  const s = repsStr.toLowerCase().trim();
+  // "1 min" → 60, "30 seg" → 30, "2 min" → 120, "1:30" → 90
+  let m = s.match(/^(\d+)\s*min/);
+  if (m) return parseInt(m[1]) * 60;
+  m = s.match(/^(\d+)\s*seg/);
+  if (m) return parseInt(m[1]);
+  m = s.match(/^(\d+):(\d+)$/);
+  if (m) return parseInt(m[1]) * 60 + parseInt(m[2]);
+  return 0;
+}
+
+function isTimeBased(repsStr) {
+  return parseRepsToSeconds(repsStr) > 0;
+}
+
+// ── RENDER DAYS ─────────────────────────────────────────────
+function renderDays() {
+  const grid = document.getElementById('days-grid');
+  grid.innerHTML = '';
+  days.forEach(day => {
+    const card = document.createElement('div');
+    card.className = 'day-card';
+
+    // Schedule pills
+    let pills = '';
+    if (day.schedBreakfast) pills += `<span class="s-pill" onclick="openScheduleModal(${day.id})" title="Editar horarios">🌅 ${day.schedBreakfast}</span>`;
+    if (day.schedLunch) pills += `<span class="s-pill" onclick="openScheduleModal(${day.id})" title="Editar horarios">☀️ ${day.schedLunch}</span>`;
+    if (day.schedSnack) pills += `<span class="s-pill" onclick="openScheduleModal(${day.id})" title="Editar horarios">🌙 ${day.schedSnack}</span>`;
+    if (day.schedWorkout) pills += `<span class="s-pill" onclick="openScheduleModal(${day.id})" title="Editar horarios">🏋️ ${day.schedWorkout}</span>`;
+
+    // Exercise list
+    let exHtml = '';
+    if (day.rest) {
+      exHtml = `<div class="rest-badge">🛌 Día de Descanso — recupera y disfruta</div>`;
+    } else {
+      exHtml = `<ul class="exercise-list">` + day.exercises.map((e, idx) => {
+        const timeBased = isTimeBased(e.reps);
+        const timerBtn = timeBased
+          ? `<button class="exercise-timer-btn" onclick="startTimer('${e.name.replace(/'/g,"\\'")}', ${parseRepsToSeconds(e.reps)})">⏱ ${e.reps}</button>`
+          : `<span class="exercise-reps">${e.reps}</span>`;
+        return `<li class="exercise-item">
+          <span class="exercise-name">${e.name}</span>
+          ${timerBtn}
+        </li>`;
+      }).join('') + `</ul>`;
+    }
+
+    // Products checklist
+    const prods = day.dayProducts || [];
+    let prodHtml = '';
+    if (prods.length > 0) {
+      prodHtml = `
+        <hr class="divider">
+        <div class="section-label" style="margin-bottom:6px;">🛒 Lista del día</div>
+        <div class="day-products-section">
+          ${prods.map(p => `
+            <div class="day-product-item">
+              <input type="checkbox" class="day-product-check" id="dp-${day.id}-${p.id}"
+                ${p.done ? 'checked' : ''}
+                onchange="toggleDayProduct(${day.id}, '${p.id}', this.checked)">
+              <label class="day-product-label ${p.done ? 'checked' : ''}" for="dp-${day.id}-${p.id}">${p.icon} ${p.name}</label>
+            </div>`).join('')}
+        </div>`;
+    }
+
+    const drinkHtml = day.mealDrink ? `<p class="meal-desc" style="margin-top:5px;">☕ <em>${day.mealDrink}</em></p>` : '';
+
+    card.innerHTML = `
+      <div class="day-header">
+        <div style="flex:1;">
+          <h3>${day.name}</h3>
+          <div class="schedule-pills">${pills || '<span style="font-size:0.7rem;color:rgba(255,255,255,0.6);">Toca una pastilla para editar horarios</span>'}</div>
+        </div>
+        <div class="day-actions">
+          <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:white;border:none;" onclick="editDay(${day.id})">✏️</button>
+          <button class="btn btn-sm" style="background:rgba(220,53,69,0.7);color:white;border:none;" onclick="confirmDeleteDay(${day.id})">🗑</button>
+        </div>
+      </div>
+      <div class="day-body">
+        <div class="section-label">🥗 Desayuno</div>
+        <div class="meal-title">${day.mealTitle}</div>
+        <div class="meal-desc">${day.mealDesc.replace(/\n/g,'<br>')}</div>
+        ${drinkHtml}
+        ${prodHtml}
+        <hr class="divider">
+        <div class="section-label" style="margin-bottom:6px;">🏋️ Entrenamiento (3 series)</div>
+        ${exHtml}
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function toggleDayProduct(dayId, prodId, done) {
+  const day = days.find(d => d.id === dayId);
+  const p = day.dayProducts.find(x => x.id === prodId);
+  p.done = done;
+  // update label style without full re-render
+  const label = document.querySelector(`label[for="dp-${dayId}-${prodId}"]`);
+  if (label) label.className = 'day-product-label' + (done ? ' checked' : '');
+}
+
+// ── SCHEDULE MODAL ─────────────────────────────────────────
+function openScheduleModal(dayId) {
+  const day = days.find(d => d.id === dayId);
+  document.getElementById('modal-sched-title').textContent = 'Horarios: ' + day.name;
+  document.getElementById('sched-day-id').value = dayId;
+  document.getElementById('sched-breakfast').value = day.schedBreakfast || '';
+  document.getElementById('sched-lunch').value = day.schedLunch || '';
+  document.getElementById('sched-snack').value = day.schedSnack || '';
+  document.getElementById('sched-workout').value = day.schedWorkout || '';
+  document.getElementById('modal-schedule').classList.remove('hidden');
+}
+
+function saveSchedule() {
+  const id = parseInt(document.getElementById('sched-day-id').value);
+  const day = days.find(d => d.id === id);
+  day.schedBreakfast = document.getElementById('sched-breakfast').value.trim();
+  day.schedLunch = document.getElementById('sched-lunch').value.trim();
+  day.schedSnack = document.getElementById('sched-snack').value.trim();
+  day.schedWorkout = document.getElementById('sched-workout').value.trim();
+  closeModal('modal-schedule');
+  renderDays();
+}
+
+// ── TIMER ──────────────────────────────────────────────────
+function startTimer(exName, totalSecs) {
+  timerExerciseName = exName;
+  timerTotalSeconds = totalSecs;
+  timerCurrentSeries = 1;
+  timerTotalSeries = 3;
+  startTimerSeries();
+}
+
+function startTimerSeries() {
+  clearInterval(timerInterval);
+  timerSeconds = timerTotalSeconds;
+  timerPaused = false;
+  document.getElementById('timer-pause-btn').textContent = '⏸ Pausar';
+  document.getElementById('timer-ex-name').textContent = timerExerciseName;
+  document.getElementById('timer-series-label').textContent = `Serie ${timerCurrentSeries} de ${timerTotalSeries}`;
+  document.getElementById('timer-overlay').classList.remove('hidden');
+  updateTimerDisplay();
+  timerInterval = setInterval(timerTick, 1000);
+}
+
+function timerTick() {
+  if (timerPaused) return;
+  timerSeconds--;
+  updateTimerDisplay();
+  if (timerSeconds <= 0) {
+    clearInterval(timerInterval);
+    if (timerCurrentSeries < timerTotalSeries) {
+      // Auto-show "next series" after 1 sec
+      setTimeout(() => {
+        timerCurrentSeries++;
+        startTimerSeries();
+      }, 800);
+    } else {
+      document.getElementById('timer-overlay').classList.add('hidden');
+      showDone();
+    }
+  }
+}
+
+function updateTimerDisplay() {
+  const mins = Math.floor(timerSeconds / 60);
+  const secs = timerSeconds % 60;
+  const display = document.getElementById('timer-display');
+  display.textContent = mins > 0 ? `${mins}:${String(secs).padStart(2,'0')}` : `${timerSeconds}`;
+  display.className = 'timer-display' + (timerSeconds <= 5 ? ' urgent' : '');
+  const pct = (timerSeconds / timerTotalSeconds) * 100;
+  document.getElementById('timer-bar').style.width = pct + '%';
+}
+
+function toggleTimerPause() {
+  timerPaused = !timerPaused;
+  document.getElementById('timer-pause-btn').textContent = timerPaused ? '▶ Reanudar' : '⏸ Pausar';
+}
+
+function timerNextSeries() {
+  clearInterval(timerInterval);
+  if (timerCurrentSeries < timerTotalSeries) {
+    timerCurrentSeries++;
+    startTimerSeries();
+  } else {
+    document.getElementById('timer-overlay').classList.add('hidden');
+    showDone();
+  }
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  document.getElementById('timer-overlay').classList.add('hidden');
+}
+
+function showDone() {
+  document.getElementById('done-sub-text').textContent =
+    `${timerTotalSeries} series de "${timerExerciseName}" completadas 💪`;
+  document.getElementById('done-overlay').classList.remove('hidden');
+}
+
+function closeDone() {
+  document.getElementById('done-overlay').classList.add('hidden');
+}
+
+// ── DAY MODAL ─────────────────────────────────────────────
+function openAddDay() {
+  document.getElementById('modal-title').textContent = 'Agregar Nuevo Día';
+  document.getElementById('edit-day-id').value = '';
+  document.getElementById('edit-day-name').value = '';
+  document.getElementById('edit-sched-breakfast').value = '';
+  document.getElementById('edit-sched-lunch').value = '';
+  document.getElementById('edit-sched-snack').value = '';
+  document.getElementById('edit-sched-workout').value = '';
+  document.getElementById('edit-meal-title').value = '';
+  document.getElementById('edit-meal-desc').value = '';
+  document.getElementById('edit-meal-drink').value = '';
+  document.getElementById('edit-rest').value = 'no';
+  document.getElementById('btn-delete-day').style.display = 'none';
+  renderExerciseEditor([]);
+  renderDayProductsEditor([]);
+  document.getElementById('modal-day').classList.remove('hidden');
+}
+
+function editDay(id) {
+  const day = days.find(d => d.id === id);
+  document.getElementById('modal-title').textContent = 'Editar: ' + day.name;
+  document.getElementById('edit-day-id').value = id;
+  document.getElementById('edit-day-name').value = day.name;
+  document.getElementById('edit-sched-breakfast').value = day.schedBreakfast || '';
+  document.getElementById('edit-sched-lunch').value = day.schedLunch || '';
+  document.getElementById('edit-sched-snack').value = day.schedSnack || '';
+  document.getElementById('edit-sched-workout').value = day.schedWorkout || '';
+  document.getElementById('edit-meal-title').value = day.mealTitle;
+  document.getElementById('edit-meal-desc').value = day.mealDesc;
+  document.getElementById('edit-meal-drink').value = day.mealDrink || '';
+  document.getElementById('edit-rest').value = day.rest ? 'yes' : 'no';
+  document.getElementById('btn-delete-day').style.display = 'inline-block';
+  renderExerciseEditor(day.exercises);
+  renderDayProductsEditor(day.dayProducts || []);
+  document.getElementById('modal-day').classList.remove('hidden');
+}
+
+function renderDayProductsEditor(prods) {
+  const list = document.getElementById('day-prod-list');
+  list.innerHTML = '';
+  prods.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'ex-row';
+    row.dataset.prodId = p.id;
+    row.innerHTML = `
+      <input type="text" value="${p.icon}" class="dp-icon" style="width:50px;flex:0;">
+      <input type="text" value="${p.name}" class="dp-name" style="flex:1;">
+      <button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:none;padding:5px 9px;" onclick="this.parentElement.remove()">✕</button>`;
+    list.appendChild(row);
+  });
+  document.getElementById('new-day-prod-icon').value = '';
+  document.getElementById('new-day-prod-name').value = '';
+}
+
+function addDayProduct() {
+  const icon = document.getElementById('new-day-prod-icon').value.trim() || '📦';
+  const name = document.getElementById('new-day-prod-name').value.trim();
+  if (!name) return;
+  const list = document.getElementById('day-prod-list');
+  const row = document.createElement('div');
+  row.className = 'ex-row';
+  row.dataset.prodId = 'dp' + (dpIdCounter++);
+  row.innerHTML = `
+    <input type="text" value="${icon}" class="dp-icon" style="width:50px;flex:0;">
+    <input type="text" value="${name}" class="dp-name" style="flex:1;">
+    <button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:none;padding:5px 9px;" onclick="this.parentElement.remove()">✕</button>`;
+  list.appendChild(row);
+  document.getElementById('new-day-prod-icon').value = '';
+  document.getElementById('new-day-prod-name').value = '';
+}
+
+function renderExerciseEditor(exs) {
+  const container = document.getElementById('exercises-editor');
+  container.innerHTML = '';
+  exs.forEach(e => addExerciseRow(e.name, e.reps));
+}
+
+function addExerciseRow(name='', reps='') {
+  const container = document.getElementById('exercises-editor');
+  const row = document.createElement('div');
+  row.className = 'ex-row';
+  row.innerHTML = `
+    <input type="text" placeholder="Nombre del ejercicio" value="${name}" class="ex-name">
+    <input type="text" placeholder="Reps / tiempo" value="${reps}" class="ex-reps" style="width:90px;flex:0;">
+    <button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:none;padding:5px 9px;" onclick="this.parentElement.remove()">✕</button>`;
+  container.appendChild(row);
+}
+
+function saveDay() {
+  const id = document.getElementById('edit-day-id').value;
+  // exercises
+  const exercises = [];
+  document.querySelectorAll('#exercises-editor .ex-row').forEach(row => {
+    const name = row.querySelector('.ex-name').value.trim();
+    const reps = row.querySelector('.ex-reps').value.trim();
+    if (name) exercises.push({name, reps});
+  });
+  // day products
+  const dayProducts = [];
+  document.querySelectorAll('#day-prod-list .ex-row').forEach(row => {
+    const icon = row.querySelector('.dp-icon').value.trim() || '📦';
+    const name = row.querySelector('.dp-name').value.trim();
+    const pid = row.dataset.prodId || ('dp' + (dpIdCounter++));
+    if (name) dayProducts.push({id: pid, icon, name, done: false});
+  });
+
+  const dayData = {
+    name: document.getElementById('edit-day-name').value.toUpperCase().trim(),
+    schedBreakfast: document.getElementById('edit-sched-breakfast').value.trim(),
+    schedLunch: document.getElementById('edit-sched-lunch').value.trim(),
+    schedSnack: document.getElementById('edit-sched-snack').value.trim(),
+    schedWorkout: document.getElementById('edit-sched-workout').value.trim(),
+    mealTitle: document.getElementById('edit-meal-title').value.trim(),
+    mealDesc: document.getElementById('edit-meal-desc').value.trim(),
+    mealDrink: document.getElementById('edit-meal-drink').value.trim(),
+    rest: document.getElementById('edit-rest').value === 'yes',
+    dayProducts, exercises
+  };
+
+  if (id) {
+    const idx = days.findIndex(d => d.id == id);
+    days[idx] = { id: parseInt(id), ...dayData };
+  } else {
+    days.push({ id: nextDayId++, ...dayData });
+  }
+  closeModal('modal-day');
+  localSave(); renderAll();
+}
+
+function confirmDeleteDay(id) {
+  if (confirm('¿Eliminar este día del plan?')) {
+    days = days.filter(d => d.id !== id);
+    localSave(); renderAll();
+  }
+}
+
+function deleteDay() {
+  const id = parseInt(document.getElementById('edit-day-id').value);
+  days = days.filter(d => d.id !== id);
+  closeModal('modal-day');
+  localSave(); renderAll();
+}
+
+// ── PRODUCT MODAL ─────────────────────────────────────────
+function openAddProduct() {
+  document.getElementById('modal-product-title').textContent = 'Agregar Producto';
+  document.getElementById('edit-product-id').value = '';
+  document.getElementById('edit-product-name').value = '';
+  document.getElementById('edit-product-icon').value = '';
+  document.getElementById('edit-product-have').value = 'yes';
+  document.getElementById('btn-delete-product').style.display = 'none';
+  document.getElementById('modal-product').classList.remove('hidden');
+}
+
+function editProduct(id) {
+  const p = products.find(x => x.id === id);
+  document.getElementById('modal-product-title').textContent = 'Editar Producto';
+  document.getElementById('edit-product-id').value = id;
+  document.getElementById('edit-product-name').value = p.name;
+  document.getElementById('edit-product-icon').value = p.icon;
+  document.getElementById('edit-product-have').value = p.have ? 'yes' : 'no';
+  document.getElementById('btn-delete-product').style.display = 'inline-block';
+  document.getElementById('modal-product').classList.remove('hidden');
+}
+
+function saveProduct() {
+  const id = document.getElementById('edit-product-id').value;
+  const data = {
+    name: document.getElementById('edit-product-name').value.trim(),
+    icon: document.getElementById('edit-product-icon').value.trim() || '📦',
+    have: document.getElementById('edit-product-have').value === 'yes'
+  };
+  if (id) {
+    const idx = products.findIndex(p => p.id == id);
+    products[idx] = { id: parseInt(id), ...data };
+  } else {
+    products.push({ id: nextProductId++, ...data });
+  }
+  closeModal('modal-product');
+  localSave(); renderAll();
+}
+
+function deleteProduct() {
+  const id = parseInt(document.getElementById('edit-product-id').value);
+  products = products.filter(p => p.id !== id);
+  closeModal('modal-product');
+  localSave(); renderAll();
+}
+
+function toggleProduct(id) {
+  const p = products.find(x => x.id === id);
+  p.have = !p.have;
+  localSave(); renderAll();
+}
+
+// ── STOCK RENDER ──────────────────────────────────────────
+function renderStock() {
+  const grid = document.getElementById('stock-grid');
+  grid.innerHTML = '';
+  products.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'stock-card';
+    card.innerHTML = `
+      <div class="stock-icon">${p.icon}</div>
+      <div class="stock-info">
+        <div class="stock-name">${p.name}</div>
+        <div class="stock-status ${p.have ? 'status-ok' : 'status-missing'}">${p.have ? '✅ En stock' : '❌ Necesitas comprar'}</div>
+      </div>
+      <button class="stock-toggle ${p.have ? 'on' : 'off'}" onclick="toggleProduct(${p.id})"></button>
+      <button class="btn btn-sm" style="background:transparent;border:1px solid var(--border);color:var(--gray);margin-left:4px;" onclick="editProduct(${p.id})">✏️</button>`;
+    grid.appendChild(card);
+  });
+}
+
+function renderAlert() {
+  const missing = products.filter(p => !p.have);
+  const banner = document.getElementById('alert-banner');
+  const list = document.getElementById('missing-list');
+  if (missing.length === 0) { banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  list.innerHTML = missing.map(p => `<li>${p.icon} ${p.name}</li>`).join('');
+}
+
+// ── TABS ──────────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['plan','stock','config'][i] === id);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+// ── CONFIG ────────────────────────────────────────────────
+function saveConfig() {
+  config.name = document.getElementById('cfg-name').value;
+  config.subtitle = document.getElementById('cfg-subtitle').value;
+  config.planTitle = document.getElementById('cfg-plan-title').value;
+  config.planDesc = document.getElementById('cfg-plan-desc').value;
+  updateConfigDisplay();
+  alert('✅ Configuración guardada correctamente.');
+}
+
+function updateConfigDisplay() {
+  document.getElementById('display-name').textContent = config.name;
+  document.getElementById('display-subtitle').textContent = config.subtitle;
+  document.getElementById('plan-card-title').textContent = config.planTitle;
+  document.getElementById('plan-card-desc').textContent = config.planDesc;
+  // sync config inputs
+  document.getElementById('cfg-name').value = config.name;
+  document.getElementById('cfg-subtitle').value = config.subtitle;
+  document.getElementById('cfg-plan-title').value = config.planTitle;
+  document.getElementById('cfg-plan-desc').value = config.planDesc;
+}
+
+// ── GUARDAR / RESTAURAR ───────────────────────────────────
+function saveToFile() {
+  const data = { config, days, products, nextDayId, nextProductId, dpIdCounter };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const date = new Date().toISOString().slice(0,10);
+  a.download = `bienestar_${config.name}_${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function restoreFromFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      config = data.config || config;
+      days = data.days || days;
+      products = data.products || products;
+      nextDayId = data.nextDayId || nextDayId;
+      nextProductId = data.nextProductId || nextProductId;
+      dpIdCounter = data.dpIdCounter || dpIdCounter;
+      localSave(); renderAll();
+      alert('✅ Plan restaurado correctamente desde el archivo.');
+    } catch(err) {
+      alert('❌ Error al leer el archivo. Asegúrate de usar un archivo .json guardado desde este programa.');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ── UTILS ─────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function printPlan() { window.print(); }
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.add('hidden');
+  });
+});
+
+// ── INIT ──────────────────────────────────────────────────
+localLoad(); // cargar localStorage primero (rápido)
+renderAll();
+fbLoad();    // luego sincronizar con Firebase
+
+// PWA
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
